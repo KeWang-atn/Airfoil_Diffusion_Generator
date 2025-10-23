@@ -140,7 +140,7 @@ def train(args):
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.95, patience=100) # verbose=True
     mse = nn.MSELoss(reduction='none')
     l1 = nn.L1Loss()
-    diffusion = Diffusion(num_airfoil_points=args.num_airfoil_points, device=device)
+    diffusion = Diffusion(noise_steps=args.noise_step ,num_airfoil_points=args.num_airfoil_points, device=device)
     logger = SummaryWriter(os.path.join("runs", args.run_name))
     l = len(dataloader)
     ema = EMA(0.995)
@@ -149,6 +149,7 @@ def train(args):
     # Wandb setup
     wandb.init(project='conditional_airfoil_diffusion', name=args.run_name, config=args)
     config = wandb.config
+    config = args
     config.epochs = args.epochs
     config.batch_size = args.batch_size
     config.lr = args.lr
@@ -212,12 +213,12 @@ def train(args):
     plt.ylabel('Loss')
     plt.title('Training Loss')
     plt.savefig(os.path.join("results", args.run_name, "training_loss.jpg"))
-    wandb.save(os.path.join("results", args.run_name, "training_loss.jpg"))
+    wandb.save(os.path.join("results", args.run_name, "traini   ng_loss.jpg"))
 
 def launch():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--run_name', type=str, default="run_3")
+    parser.add_argument('--run_name', type=str, default="1000Steps")
     parser.add_argument('--epochs', type=int, default=20001)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--num_airfoil_points', type=int, default=100)
@@ -225,6 +226,7 @@ def launch():
     parser.add_argument('--dataset_path', type=str, default="coord_seligFmt/")
     parser.add_argument('--device', type=str, default="cuda")
     parser.add_argument('--lr', type=float, default=1e-3)
+    parser.add_argument('--noise_step', type=int, default=1000)
     args = parser.parse_args()
     train(args)
 

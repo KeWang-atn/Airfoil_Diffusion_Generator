@@ -769,13 +769,42 @@ class GaussianDiffusion1D(Module):
         img = torch.randn(shape, device=device)
 
         x_start = None
-
+        
         for t in tqdm(reversed(range(0, self.num_timesteps)), desc = 'sampling loop time step', total = self.num_timesteps):
             img, x_start = self.p_sample(img, t, conditioning)
 
         img = self.unnormalize(img)
         return img
 
+    @torch.no_grad()
+    def p_sample_loop_with_RePaint(self, shape, img_ref, mask,conditioning = None):
+        batch, device = shape[0], self.betas.device
+        mask = mask.to(device)
+        U = 20 
+        img = torch.randn(shape, device=device)
+        img_ref = self.normalize(img_ref).to(device)
+        x_start = None
+        
+        for t in tqdm(reversed(range(0, self.num_timesteps)), desc = 'sampling loop time step', total = self.num_timesteps):
+            betas_t_minus_one = self.extract(self.betas, t, img.shape)
+            squrt_one_minus_beta = torch.sqrt(1.0 - betas_t_minus_one)
+            batched_times = torch.full((img.shape[0],), t, device=device, dtype=torch.long)
+            # Resampling
+            for round in range(U):
+                if t < self.num_timesteps-1: 
+                    img_ref_t = self.q_sample(img_ref, batched_times) # Known X_t
+                    noise = torch.randn_like(img,device=device)
+                else:
+                    img_ref_t = img_ref
+                    noise = 0
+                img, x_start = self.p_sample(img, t, conditioning)
+                img = img_ref_t*mask + img*(1-mask)
+                
+                if t < self.num_timesteps-1 or round < (U-1):
+                    img = img * squrt_one_minus_beta + noise * betas_t_minus_one  
+            
+        img = self.unnormalize(img)
+        return img
     @torch.no_grad()
     def ddim_sample(self, shape, clip_denoised = True):
         batch, device, total_timesteps, sampling_timesteps, eta, objective = shape[0], self.betas.device, self.num_timesteps, self.sampling_timesteps, self.ddim_sampling_eta, self.objective
@@ -816,7 +845,7 @@ class GaussianDiffusion1D(Module):
         seq_length, channels = self.seq_length, self.channels
         sample_fn = self.p_sample_loop if not self.is_ddim_sampling else self.ddim_sample
         return sample_fn((batch_size, channels, seq_length), conditioning)
-
+    
     @torch.no_grad()
     def interpolate(self, x1, x2, t = None, lam = 0.5):
         b, *_, device = *x1.shape, x1.device
