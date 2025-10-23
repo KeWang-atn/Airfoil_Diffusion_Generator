@@ -133,7 +133,7 @@ def train(args):
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     model = UNet_conditional(c_in=1, c_out=1, cond_dim=args.cond_dim, time_dim=64, base_dim=16).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.95, patience=100, verbose=True)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.95, patience=100) # verbose=True
     mse = nn.MSELoss(reduction='none')
     l1 = nn.L1Loss()
     diffusion = Diffusion(num_airfoil_points=args.num_airfoil_points, device=device)

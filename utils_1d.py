@@ -61,9 +61,29 @@ def save_images_conditional(airfoils,airfoil_x, path, cl, num_cols=4):
     fig.savefig(path)
     plt.close(fig)
 
+def safe_to_int(x):
+    """
+    将各种类型的输入（标量、tensor、列表等）安全地转为 int。
+    支持 GPU tensor。
+    """
+    if torch.is_tensor(x):
+        x = x.detach().cpu()
+        # 如果是单个值的 tensor
+        if x.numel() == 1:
+            return int(x.item())
+        # 如果是多元素 tensor
+        else:
+            return int(len(x))
+    elif isinstance(x, (list, tuple)):
+        return int(len(x))
+    else:
+        return int(x)
+    
 def save_images(airfoils,airfoil_x, path, num_cols=4):
     num_airfoils = airfoils.shape[0]
     num_rows = (num_airfoils + num_cols - 1) // num_cols  # Ensure we cover all airfoils
+    num_rows = safe_to_int(num_rows)
+    num_cols = safe_to_int(num_cols)
     fig, axs = plt.subplots(num_rows, num_cols, figsize=(num_cols * 5, num_rows * 5))
     
     axs = axs.flatten()
