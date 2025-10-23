@@ -1,4 +1,7 @@
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
 import copy
 import numpy as np
 import torch
@@ -15,6 +18,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import wandb
 import math
 import matplotlib.pyplot as plt
+
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s: %(message)s", level=logging.INFO, datefmt="%I:%M:%S")
 
